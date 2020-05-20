@@ -44,7 +44,12 @@ insert into meta.coh_udm_mapping_organisation (coh_column, udm_table, udm_column
             ('relationship_manager_code', 'organisation', 'relationship_manager_code') ;
 
 -- Procedures
-CREATE OR REPLACE PROCEDURE coh.check_organisation (IN p_table_name text, IN p_gener bool, p_party_id text)
+-- Assumptions:
+-- A meta.mandatory_{p_micro_domain} exists containing the mandatory column names in the {p_micro_domain} micro-domain
+-- A coh.check_{p_micro_domain} function will be generated to do the actual coherence check
+-- A natural key party_id is given as parameter to both procedures
+-- The p_gener parameter should be set to True first time then kept as False until metadata regarding mandatory fields changes
+CREATE OR REPLACE PROCEDURE coh.check (IN p_micro_domain text, IN p_gener bool, p_party_id text)
 LANGUAGE plpgsql
 AS $proc$
 
@@ -53,13 +58,15 @@ DECLARE
 l_proc text ;
 l_col text ;
 l_row text ;
+l_query text ;
 l_result bool ;
 
 csr refcursor ;
 
 BEGIN
     IF p_gener THEN -- Only re-generate function if p_gener flag set to True indicating metadata changes
-    	OPEN csr for execute ('SELECT column_name FROM meta.mandatory_' || quote_ident (p_table_name)) ;
+    	
+        OPEN csr for execute ('SELECT column_name FROM meta.mandatory_' || quote_ident (p_micro_domain)) ;
     	l_row := 'row (' ;
     	LOOP
         	FETCH csr INTO l_col ;
@@ -69,14 +76,15 @@ BEGIN
     	CLOSE csr ;
     	l_row := substring (l_row, 1, length (l_row) - 2) ;
     	l_row := l_row || ')' ;
-    	l_proc := 'create or replace function coh._check_organisation (p_party_id text)' || chr (10) ||
+    
+    	l_proc := 'create or replace function coh.check_' || quote_ident (p_micro_domain) || ' (p_party_id text)' || chr (10) ||
               	  'returns boolean' || chr (10) ||
                   'as $p$' || chr (10) ||
                   'declare' || chr (10) ||
                   '    l_query text ;' || chr (10) ||
                   '    l_result integer ;' || chr (10) ||
                   'begin' || chr (10) ||
-                  '    l_query := ''select 1 from coh.' || quote_ident (p_table_name) || ' where reference_value = $1 and ' || l_row || ' is not null'';' || chr (10) ||
+                  '    l_query := ''select 1 from coh.' || quote_ident (p_micro_domain) || ' where reference_value = $1 and ' || l_row || ' is not null'';' || chr (10) ||
                   '    execute l_query into l_result using p_party_id ;' || chr (10) ||
                   '    if l_result is null then' || chr (10) ||
                   '        return false ;' || chr (10) ||
@@ -87,17 +95,18 @@ BEGIN
                   '$p$ ' || chr (10) ||
                   'language plpgsql ;' || chr (10) ;
         EXECUTE l_proc ;
-        RAISE NOTICE 'Proc created.' ;
+        RAISE NOTICE 'Procedure coh.check_% created.', p_micro_domain ;
        
         COMMIT ;
     END IF ;
-    SELECT coh._check_organisation (p_party_id) INTO l_result ;
+    l_query := 'SELECT coh.check_' || quote_ident (p_micro_domain) || ' (' || quote_literal (p_party_id) || ')' ;
+    EXECUTE l_query INTO l_result USING p_party_id;
     RAISE NOTICE 'Check: %', l_result ;
 END ;
 $proc$ ;
 
-call coh.check_organisation ('organisation', True, 'NKey_001') ;
-select coh._check_organisation ('NKey_001') ;
+call coh.check ('organisation', True, 'NKey_001') ;
+select coh.check_organisation ('NKey_001') ;
 
 CREATE OR REPLACE FUNCTION coh._check_organisation(p_party_id text)
  RETURNS boolean
