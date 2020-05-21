@@ -108,7 +108,7 @@ $proc$ ;
 call coh.check ('organisation', True, 'NKey_001') ;
 select coh.check_organisation ('NKey_001') ;
 
-CREATE OR REPLACE FUNCTION coh._check_organisation(p_party_id text)
+CREATE OR REPLACE FUNCTION coh.check_organisation(p_party_id text)
  RETURNS boolean
  LANGUAGE plpgsql
 AS $function$
@@ -126,4 +126,21 @@ begin
 end ;
 $function$
 ;
+
+SELECT n.nspname as "Schema",
+       p.proname as "Name",
+       pg_catalog.pg_get_function_result(p.oid) as "Result data type",
+       pg_catalog.pg_get_function_arguments(p.oid) as "Argument data types",
+       CASE WHEN p.prokind = 'a' THEN 'Agg'
+            WHEN p.prokind = 'w' THEN 'Window'
+            WHEN p.prokind = 't' THEN 'Trigger'
+            WHEN p.prokind = 'f' THEN 'Function'
+            WHEN p.prokind = 'p' THEN 'Procedure'
+            ELSE 'Undefined'
+       END AS "Type"
+FROM   pg_catalog.pg_proc p
+LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname <> 'pg_catalog'
+  AND n.nspname <> 'information_schema'
+  AND n.nspname  = 'coh' ;
 
