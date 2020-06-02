@@ -1,3 +1,19 @@
+RBWM was supposed to provide us with CSV files or even with populated BQ source tables containing an end of the day snapshot. Sadly this has not happened yet so we had to manufacture our own and that is what your are going to see during the demo. The table structures were at least available so we tried to create this data as close to the alleged prod one as possible.
+
+It is this point in the Ingestion layer where we manually inject this test data instead of receiving it from a Change Data Capture agent.
+This information comes in the form of JSON (basically text) messages that needs Cleansing and therefore enters into our Data Refinery. Empty, null fields may get a default value, dates are standardized, master data elements such as Currency, Country names, Postcode etc. get validated. 
+
+Once the data is validated, it moves on to the Transform - Conform layer where we Transform this data into our UDM structure. Udm is a Unified Data Model and is in 3NF. It ensures that we speak the common language, it contains numerous business entities such as Party, Address, Organisation name, Formation, etc.  
+
+There is also a higher level building block that we call a Micro-Domain. Such micro-domain is e.g. Organization that includes the organization category (Sic-codes), organization name and formation type entities. Another one is party that includes party reference, party type, party relation, etc. Certain attributes  in a micro-domain are designated as mandatory. A micro-domain is considered complete / Coherent when these mandatory fields have all meaningful values. Our Coherent layer makes sure that the information that goes to the Udm layer is coherent/complete by keeping this data in this layer until all mandatory fields are populated by multiple source messages.
+
+We populate the atomic building blocks in forms of Udm entities and expose them in 2 ways:
+1. API 
+2. Messages just as we received the source data
+
+We are going to demonstrate both. We created an example Consumption layer in form of a BQ database and using Data Studio as the reporting tool. 
+ 
+
 drop table udm.organisation ;
 -- *** Setup data ***
 -- UDM
