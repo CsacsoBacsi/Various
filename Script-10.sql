@@ -8,7 +8,7 @@ drop SEQUENCE if exists __tresults___numb_seq cascade ;
 
 create table if not exists udm.cstbl (id integer, name varchar (20), descr varchar (20), primary key (id)) ;
 select tap.plan (8) ;
-select tap.is (5, 4, 'five is five?') ;
+select tap.is (5, 4, 'Five equals four?') ;
 
 -- cmp_ok
 SELECT tap.cmp_ok ('this'::text, '='::text, 'that'::text, 'Does this equal that?'::text ) ;
@@ -25,6 +25,15 @@ SELECT has_fk ('udm', 'cstbl', 'Has a foreign key?') ;
 SELECT col_is_fk ('udm', 'cstbl', array ['name', 'descr'], 'Are columns foreign keys?') ;
 -- col_is_unique
 SELECT col_is_unique ('udm', 'cstbl', 'id', 'Is column unique?') ; -- Tests the unique constraint
+-- sequence_are
+SELECT sequences_are ('udm', array ['party_seq', 'transaction_event_seq', 'financial_position_seq'], 'Sequences installed?') ;
+-- indexes_are
+SELECT indexes_are ('udm', array ['party_reference_idx1', 'financial_position_idx1', 'ledger_entry_idx1'], 'Indices installed?') ;
+-- triggers_are
+SELECT triggers_are ('udm', array ['ledger_entry_trg'], 'Triggers installed?') ;
+-- functions_are
+SELECT functions_are ('udm', array ['ledger_entry_trg_func'], 'Trigger functions installed?') ;
+-- 
 select finish () ;
 
 rollback ;
