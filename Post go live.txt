@@ -1,0 +1,42 @@
+- Cloud SQL - cloud's traditional, relational db offering.
+  3 flavours. Postgres #1 in 2017,18, 2020, open source, we chose it
+- Accommodates udm. Aim: one version of truth. Common structure defined by HSBC modellers. 
+  All the sources we ingest transform and make them conform to udm entities
+- *** Micro-domain pic *** It is in 3rd normal form, no dupes, ensures referential integrity
+- Consistency, integrity, coherency is the key:  
+  *** GTRF pic *** entities: referential integrity. E.g. claim without transaction event, account...
+  Valid amount type, ledger account type, etc.
+
+- Traditional db wich compliant with ACID rules: (Atomicity, Consistency, Isolation, Durability)
+     ** either all of the transaction succeeds or none of it does **
+- These rules are followed in our pipeline: Single message populates 5-6 entities if 1 fails - all fails
+- Data is immutable. We only do inserts. No overwriting data! Trends and 'as of date' queries
+  Data can never be corrupted, at any point in time shows a consistent picture.
+ 
+- So far all data came in parallel, you heard multiple workers, multiple pub/sub topics... Things in series.
+  We did not experience perf issue!!! JSON parsing, standardization takes time
+  Doc: 60 000 IOPS input/output per sec. 
+
+- We also have BigQuery. Analyze petabytes of data using ANSI SQL, this storage is pretty cheap. Sub-second query
+  response time and high concurrency. Latest data immediately with streaming.
+- Lacks referential integrity constraints, no concept of transactions
+- Excels though in analytic queries, aggregations.
+
+- Make up for lack of integrity, we tied udm to BQ. Only rows (messages) validated by udm can make it to BQ!! 
+  At any point in time they are in sync!
+
+- You might say BQ even without uniqueness checks that result in dupes, eliminating them is quick. Chucks more processing power
+  Costs for storage add up. More processing...
+  Danger of having two versions (multiple versions) of truth.
+- There is an ongoing review. Another consumer and untie udm and BQ???
+
+- Expand to new use case: Add new micro-domains, new attributes the new source brings
+
+- Ref data: rows that do not get validated by ref integrity gets rejected. Key: latest version.
+  Load prior to loading facts or transactional data.
+  RDM interface (in Cloud)
+  Interfacing with source system (use case specific), up-to-date
+  Working with David Knifton's marketing team on common solution
+  1. Create new ref data dynamically - retrospectively fill in attributes (name, desc, start date) -> no rejections
+  2. Rejections. Update ref data, reload rejection bucket. 
+
