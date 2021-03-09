@@ -1,0 +1,33 @@
+-- Nested struct and array table field access
+truncate table `organic-palace-306416.DS.t1` ;
+
+SELECT empno, age, name, sal.mon, sal.amt, cost.food, cost.house FROM `organic-palace-306416.DS.t1`, unnest (sal) as sal, unnest (sal.cost) as cost LIMIT 1000 ;
+
+SELECT * FROM `organic-palace-306416.DS.t1` LIMIT 1000 ;
+insert into `organic-palace-306416.DS.t1` (empno, age, name, sal) 
+values (1, 35, 'En', [struct ('Jan', 2000, [struct (5, 10), (4, 8)]), struct ('Feb', 3000, [struct (6, 8), (3, 3)]), struct ('Mar', 3500, [struct (2, 9), (7, 1)])]) ;
+
+SELECT empno, age, name, t.sal[offset(1)].amt, t.sal[offset(1)].cost[offset(1)].house FROM `organic-palace-306416.DS.t1` t LIMIT 1000 ;
+SELECT empno, age, name, sal.mon, sal.amt, cost.food, cost.house, num FROM `organic-palace-306416.DS.t1`, unnest (sal) as sal WITH OFFSET AS num, unnest (sal.cost) as cost;
+
+-- Value tables
+SELECT AS VALUE STRUCT (1 AS a, 2 AS b) xyz ;
+SELECT AS STRUCT 1 a, 2 b ;
+SELECT STRUCT (1 AS a, 2 AS b) xyz ;
+SELECT ARRAY (SELECT AS STRUCT 1 a, 2 b) ;
+
+-- Table data as of timestamp
+SELECT *
+FROM `organic-palace-306416.DS.t1` t
+  FOR SYSTEM_TIME AS OF '2021-03-08 22:00:00-07:00';
+
+DECLARE before_replace_timestamp TIMESTAMP;
+CREATE OR REPLACE TABLE `organic-palace-306416.DS.books` AS
+SELECT 'Hamlet' title, 'William Shakespeare' author;
+
+SET before_replace_timestamp = CURRENT_TIMESTAMP();
+
+CREATE OR REPLACE TABLE `organic-palace-306416.DS.books` AS
+SELECT 'Hamlet' title, DATE '1603-01-01' release_date;
+
+SELECT * FROM `organic-palace-306416.DS.books` FOR SYSTEM_TIME AS OF before_replace_timestamp;
