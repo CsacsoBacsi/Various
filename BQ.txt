@@ -1,3 +1,5 @@
+bq show --schema --format=prettyjson organic-palace-306416:DF.t1 > d:/t1schema.json
+
 -- Nested struct and array table field access
 truncate table `organic-palace-306416.DS.t1` ;
 
@@ -31,3 +33,56 @@ CREATE OR REPLACE TABLE `organic-palace-306416.DS.books` AS
 SELECT 'Hamlet' title, DATE '1603-01-01' release_date;
 
 SELECT * FROM `organic-palace-306416.DS.books` FOR SYSTEM_TIME AS OF before_replace_timestamp;
+
+-- *** Partitioning ***
+select count (*) as total_posts, extract (year from creation_date) as creation_year
+from `bigquery-public-data.stackoverflow.posts_questions`
+group by creation_year
+order by total_posts ;
+
+create or replace table `organic-palace-306416.DS.soflow` as 
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `bigquery-public-data.stackoverflow.posts_questions`
+where creation_date between '2020-01-01' and '2020-12-31' ;
+
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `bigquery-public-data.stackoverflow.posts_questions`
+where creation_date between '2020-01-01' and '2020-02-01'
+and tags = 'android' ;
+
+create or replace table `organic-palace-306416.DS.soflow_2020_partitioned` 
+partition by date (creation_date) as
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `bigquery-public-data.stackoverflow.posts_questions`
+where creation_date between '2020-01-01' and '2020-12-31' ;
+
+create or replace table `organic-palace-306416.DS.soflow_2020_clustered` 
+partition by date (creation_date) cluster by tags as
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `bigquery-public-data.stackoverflow.posts_questions`
+where creation_date between '2020-01-01' and '2020-12-31' ;
+
+select count (*) as total_posts, extract (year from creation_date) as creation_year
+from `bigquery-public-data.stackoverflow.posts_questions`
+group by creation_year
+order by total_posts ;
+
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `bigquery-public-data.stackoverflow.posts_questions`
+where creation_date between '2020-01-01' and '2020-02-01'
+and tags = 'android' ;
+
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `organic-palace-306416.DS.soflow_2020_partitioned`
+where creation_date between '2020-01-01' and '2020-02-01'
+and tags = 'android' ;
+
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `organic-palace-306416.DS.soflow`
+where creation_date between '2020-01-01' and '2020-02-01'
+and tags = 'android' ;
+
+select id, title, accepted_answer_id, creation_date, answer_count, comment_count, favorite_count, view_count, tags
+from `organic-palace-306416.DS.soflow_2020_clustered`
+where creation_date between '2020-01-01' and '2020-02-01'
+and tags = 'android' ;
