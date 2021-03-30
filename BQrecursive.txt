@@ -1,0 +1,77 @@
+truncate table `organic-palace-306416.test.emp` ;
+
+-- *** Solution 1 ***
+DECLARE lv_counter int64 default 1 ;
+
+CREATE or replace TABLE `organic-palace-306416.test.emp`
+AS
+WITH cte AS
+(
+    SELECT 1 AS xlevel, e.*
+    FROM   `organic-palace-306416.test.Employee_Mgr` e
+    WHERE  e.mgr_id is null
+)
+SELECT employee_id, mgr_id, xlevel
+FROM cte ;
+
+WHILE EXISTS (
+    SELECT c.employee_id
+    FROM   `organic-palace-306416.test.emp` p
+    INNER JOIN `organic-palace-306416.test.Employee_Mgr` c 
+       ON  p.employee_id = c.mgr_id
+    WHERE  p.xlevel = lv_counter
+)
+DO
+    INSERT INTO `organic-palace-306416.test.emp` (employee_id, mgr_id, xlevel )
+    SELECT c.employee_id, c.mgr_id, lv_counter + 1 AS xlevel,
+    FROM   `organic-palace-306416.test.emp` p
+    INNER JOIN 
+           `organic-palace-306416.test.Employee_Mgr` c 
+       ON  p.employee_id = c.mgr_id
+    WHERE  p.xlevel = lv_counter ;
+	
+    SET lv_counter = lv_counter + 1;
+
+    IF lv_counter > 50 THEN -- Safety net
+	    BREAK ;
+    END IF ;
+END WHILE ;
+
+-- Display employee-manger hierarchy
+SELECT employee_id, mgr_id, xlevel FROM `organic-palace-306416.test.emp` ORDER BY xlevel, mgr_id ;
+
+-- *** Solution 2 ***
+SELECT T1.employee_id, 
+       T2.employee_id as level1,
+       T3.employee_id as level2,
+       T4.employee_id as level3,
+       if (T2.employee_id is null, 0, 1) + if (T3.employee_id is null, 0, 1) + if (T4.employee_id is null, 0, 1) as sort_order
+FROM `organic-palace-306416.test.Employee_Mgr` T1
+LEFT JOIN `organic-palace-306416.test.Employee_Mgr` T2
+     ON T1.mgr_id = T2.employee_id
+LEFT JOIN `organic-palace-306416.test.Employee_Mgr` T3
+     ON T2.mgr_id = T3.employee_id 
+LEFT JOIN `organic-palace-306416.test.Employee_Mgr` T4
+     ON T3.mgr_id = T4.employee_id
+ORDER BY sort_order asc, 4 asc, 3 asc, 2 asc, 1 asc ;
+
+-- *** Stored procedures ***
+CREATE OR REPLACE PROCEDURE `organic-palace-306416.test.proc1`()
+BEGIN
+  SELECT 1/0 ;
+END;
+
+CREATE OR REPLACE PROCEDURE `organic-palace-306416.test.proc2`()
+BEGIN
+  CALL `organic-palace-306416.test.proc1`() ;
+END;
+
+BEGIN
+  CALL `organic-palace-306416.test.proc2`() ;
+EXCEPTION WHEN ERROR THEN
+  SELECT
+    @@error.message,
+    @@error.stack_trace,
+    @@error.statement_text,
+    @@error.formatted_stack_trace ;
+END ;
