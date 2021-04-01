@@ -1,5 +1,20 @@
 bq show --schema --format=prettyjson organic-palace-306416:DF.t1 > d:/t1schema.json
 
+-- Insert partial values as row. All other columns will be null
+ SELECT * FROM `organic-palace-306416.DS.t1` LIMIT 1000 ;
+
+--insert into `organic-palace-306416.DS.t1` (empno, age, name, sal) 
+--values (5, 35, 'En', [(cast (null as string), null, [(null, null)])]) ; -- struct (5, 10), (4, 8)
+
+INSERT INTO `organic-palace-306416.DS.t1` (sal)
+ with salt as (
+   SELECT s.* replace ('x12Dec' as mon)
+   FROM `organic-palace-306416.DS.t1`, unnest (sal) as s
+   WHERE 1 = 0 limit 1
+ )
+    SELECT array_agg (salt)
+    FROM salt
+
 -- Nested struct and array table field access
 truncate table `organic-palace-306416.DS.t1` ;
 
