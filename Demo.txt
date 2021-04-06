@@ -1,0 +1,27 @@
+Pipeline reaches point: persist data
+- Cloud SQL - cloud's traditional, relational
+- Accommodates udm. Aim: one version of truth. Common structure defined by HSBC modellers. 
+  All the sources we ingest transform and make them conform to udm entities
+  *** Micro domains pic ***
+- UDM - Business domain - Micro domain - Entity (table)
+- 3rd normal form, no dupes, ensures referential integrity. 1 domain - 1 transaction
+
+  *** GTRF pic *** entities: referential integrity. E.g. claim without transaction event, account...
+  Valid amount type, ledger account type, etc.
+
+- Traditional db which is compliant with ACID rules: (first: Atomicity)
+Single message populates 6-7 entities if 1 fails - all fails
+  What it means: all or nothing.
+- Data is immutable. We only do inserts.
+ 
+- We also have BigQuery. Analyze petabytes of data using ANSI SQL, this storage is pretty cheap. Sub-second query
+  response time and high concurrency. Latest data immediately with streaming.
+- Lacks referential integrity constraints, no concept of transactions
+- Excels though in analytic queries, aggregations.
+
+- Make up for lack of integrity, we tied udm to BQ. Only rows (messages) validated by udm can make it to BQ!! 
+  At any point in time they are in sync! Consumption: cherry picking data stored in UDM
+In maths terms: BQ content is always less than or equal to that of UDM
+
+
+
